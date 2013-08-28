@@ -2,27 +2,21 @@
 
 require './webapi.rb'
 
-auth = YAML::load(File.new("auth.yaml"))
-
-api = WebApi.new(auth['username'], auth['password'])
-
 StreamUrl = 'https://streaming.vn.teslamotors.com/stream/'
 
+# Implements the real-time streaming API for the Model S
 class Streamer
+  # Takes username and password for the web API
   def initialize(username, password)
     @username = username
     @api = WebApi.new(username, password)
 
     getTokens
   end
-  def getTokens
-    v = @api.vehicles[0]
-
-    @id = v["id"]
-    @vid = v["vehicle_id"]
-
-    @tokens = v['tokens']
-  end
+  
+  # Takes an optional array of values to request (default to all known values)
+  # Yields a provided block a comma-separated string corresponding to the requested values
+  # NOTE: Currently no way to end streaming
   def stream(values = ['speed', 'odometer', 'soc', 'elevation', 'est_heading', 'est_lat', 'est_lng', 'power', 'shift_state'])
     valuesString = values.join(',')
 
@@ -47,8 +41,21 @@ class Streamer
       yield response.body
     end
   end
+  
+  private
+  
+  # Get the token data from the non-streaming API to use the streaming API
+  def getTokens
+    v = @api.vehicles[0]
+
+    @id = v["id"]
+    @vid = v["vehicle_id"]
+
+    @tokens = v['tokens']
+  end
 end
 
+# Run the file to get a simple CSV dump from the streaming API
 if $0 == __FILE__
   auth = YAML::load(File.new("auth.yaml"))
   stream = Streamer.new(auth['username'], auth['password'])

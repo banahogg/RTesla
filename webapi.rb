@@ -5,7 +5,10 @@ require 'yaml'
 require 'net/http'
 require 'uri'
 
+# Basic read/write Model S web API
 class WebApi
+
+  # Takes username and password and generates login cookies
   def login(username, password)
     loginUrl = URI.parse('https://portal.vn.teslamotors.com/login')
 
@@ -26,9 +29,14 @@ class WebApi
     }
     @cookies = cookies_array.join('; ')
   end
-  def debug
-    @debug = true
+  
+  # Set debugging code on or off
+  def debug(debug = true)
+    @debug = debug
   end
+  
+  # Allocates a new WebApi object with the username and password provided
+  # Gives preference to existing cached cookies
   def initialize(username, password)
     @debug = false
     begin
@@ -39,6 +47,9 @@ class WebApi
       self.saveCookies
     end
   end
+  
+  # Returns an array of vehicles, each of which is a hash
+  # The id for for the commands below is in the "id" key of the vehicle
   def vehicles
     vehiclesUrl = URI.parse('https://portal.vn.teslamotors.com/vehicles')
 
@@ -51,6 +62,7 @@ class WebApi
     return JSON.parse(response.body)
   end
 
+  # Low-level function to run a query
   def doQuery(id, command)
     url = URI.parse("https://portal.vn.teslamotors.com/vehicles/#{id}/#{command}")
 
@@ -65,6 +77,8 @@ class WebApi
     return JSON.parse(response.body)
   end
 
+  # Function to run a command
+  # Adds handling for command return values on top of the query handling
   def doCommand(id, command)
     resp = doQuery(id, command)
     throw "Error executing command: #{resp['reason']}" unless resp['result']
@@ -105,6 +119,7 @@ class WebApi
     doCommand(id, "command/set_charge_limit?percent=#{percent}")
   end
 
+  # Save the current login cookies to a file "cookies.txt"
   def saveCookies
     File.open("cookies.txt", "w") do |f|
       f.write(@cookies.to_yaml)
