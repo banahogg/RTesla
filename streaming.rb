@@ -35,10 +35,10 @@ class Streamer
 
     streamReq = Net::HTTP::Get.new(streamUri.request_uri)
     streamReq.basic_auth(@username, @tokens[0])
- 
+
     while true
       response = http.request(streamReq)
-      if response.code != '200'	
+      if response.code != '200'
         getTokens
         streamReq.basic_auth(@username, @tokens[0])
         response = http.request(streamReq)
