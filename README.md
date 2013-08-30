@@ -14,7 +14,6 @@ TODO
 
 ### WebApi
 
-* Create Vehicle class rather than taking <id> as a parameter to the Api class
 * Better saved cookie handling
 * Better class names, modules, or both
 

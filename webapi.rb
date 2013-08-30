@@ -5,6 +5,72 @@ require 'yaml'
 require 'net/http'
 require 'uri'
 
+class Vehicle
+  # Create a Vehicle with given API object and id
+  def initialize(cookies, prop)
+    @cookies = cookies
+    @prop = prop
+    @id = prop['id']
+  end
+  
+  # Low-level function to run a query
+  def doQuery(command)
+    url = URI.parse("https://portal.vn.teslamotors.com/vehicles/#{@id}/#{command}")
+
+    response = Net::HTTP.start(url.host, use_ssl: true, verify_mode: OpenSSL::SSL::VERIFY_NONE) do |http|
+      http.get(url.request_uri, { 'Cookie' => @cookies })
+    end
+
+    p response if @debug
+    p response.body if @debug
+    throw "Can't get property #{response.code}" unless response.code == '200'
+
+    return JSON.parse(response.body)
+  end
+
+  # Function to run a command
+  # Adds handling for command return values on top of the query handling
+  def doCommand(command)
+    resp = doQuery(command)
+      throw "Error executing command: #{resp['reason']}" unless resp['result']
+    return resp
+  end
+
+  def mobileEnabled() doQuery('mobile_enabled') end
+  def chargeState() doQuery('command/charge_state') end
+  def climateState() doQuery('command/climate_state') end
+  def driveState() doQuery('command/drive_state') end
+  def vehicleState() doQuery('command/vehicle_state') end
+  def guiSettings() doQuery('command/gui_settings') end
+
+  def openChargePort() doCommand('command/charge_port_door_open') end
+  def chargeStandard() doCommand('command/charge_standard') end
+  def chargeMaxRange() doCommand('command/charge_max_range') end
+  def chargeStart() doCommand('command/charge_start') end
+  def chargeStop() doCommand('command/charge_stop') end
+  def flashLights() doCommand('command/flash_lights') end
+  def honkHorn() doCommand('command/honk_horn') end
+  def doorUnlock() doCommand('command/door_unlock') end
+  def doorLock() doCommand('command/door_lock') end
+  def autoConditioningStart() doCommand('command/auto_conditioning_start') end
+  def autoConditioningStop() doCommand('command/auto_conditioning_end') end
+  def wakeUp() doCommand('command/wake_up') end
+
+  def setTempsC(driver, passenger=driver)
+    doCommand("command/set_temps?driver_temp=#{driver}&passengerTemp=#{passenger}")
+  end
+
+  def setTempsF(driver, passenger=driver)
+    setTempsC(5.0/9.0*(driver-32), 5.0/9.0*(passenger-32))
+  end
+
+  def sunRoofControl(state, percent=0) doCommand("command/sun_roof_control?state=#{state}#{state=='move'?('&percent='+percent.to_s):''}") end
+
+  def setChargeLimit(percent)
+    doCommand("command/set_charge_limit?percent=#{percent}")
+  end
+end
+
 # Basic read/write Model S web API
 class WebApi
 
@@ -59,64 +125,9 @@ class WebApi
 
     throw "Can't load vehicles" unless response.code == '200'
 
-    return JSON.parse(response.body)
-  end
-
-  # Low-level function to run a query
-  def doQuery(id, command)
-    url = URI.parse("https://portal.vn.teslamotors.com/vehicles/#{id}/#{command}")
-
-    response = Net::HTTP.start(url.host, use_ssl: true, verify_mode: OpenSSL::SSL::VERIFY_NONE) do |http|
-      http.get(url.request_uri, { 'Cookie' => @cookies })
-    end
-
-    p response if @debug
-    p response.body if @debug
-    throw "Can't get property #{response.code}" unless response.code == '200'
-
-    return JSON.parse(response.body)
-  end
-
-  # Function to run a command
-  # Adds handling for command return values on top of the query handling
-  def doCommand(id, command)
-    resp = doQuery(id, command)
-    throw "Error executing command: #{resp['reason']}" unless resp['result']
-    return resp
-  end
-
-  def mobileEnabled(id) doQuery(id, 'mobile_enabled') end
-  def chargeState(id) doQuery(id, 'command/charge_state') end
-  def climateState(id) doQuery(id, 'command/climate_state') end
-  def driveState(id) doQuery(id, 'command/drive_state') end
-  def vehicleState(id) doQuery(id, 'command/vehicle_state') end
-  def guiSettings(id) doQuery(id, 'command/gui_settings') end
-
-  def openChargePort(id) doCommand(id, 'command/charge_port_door_open') end
-  def chargeStandard(id) doCommand(id, 'command/charge_standard') end
-  def chargeMaxRange(id) doCommand(id, 'command/charge_max_range') end
-  def chargeStart(id) doCommand(id, 'command/charge_start') end
-  def chargeStop(id) doCommand(id, 'command/charge_stop') end
-  def flashLights(id) doCommand(id, 'command/flash_lights') end
-  def honkHorn(id) doCommand(id, 'command/honk_horn') end
-  def doorUnlock(id) doCommand(id, 'command/door_unlock') end
-  def doorLock(id) doCommand(id, 'command/door_lock') end
-  def autoConditioningStart(id) doCommand(id, 'command/auto_conditioning_start') end
-  def autoConditioningStop(id) doCommand(id, 'command/auto_conditioning_end') end
-  def wakeUp(id) doCommand(id, 'command/wake_up') end
-
-  def setTempsC(id, driver, passenger=driver)
-    doCommand(id ,"command/set_temps?driver_temp=#{driver}&passengerTemp=#{passenger}")
-  end
-
-  def setTempsF(id, driver, passenger=driver)
-    setTempsC(id, 5.0/9.0*(driver-32), 5.0/9.0*(passenger-32))
-  end
-
-  def sunRoofControl(id, state, percent=0) doCommand(id, "command/sun_roof_control?state=#{state}#{state=='move'?('&percent='+percent.to_s):''}") end
-
-  def setChargeLimit(id, percent)
-    doCommand(id, "command/set_charge_limit?percent=#{percent}")
+    vehicles = JSON.parse(response.body)
+    
+    return vehicles.map {|x| Vehicle.new(@cookies, x)}
   end
 
   # Save the current login cookies to a file "cookies.txt"
@@ -134,9 +145,9 @@ if $0 == __FILE__
 
   vehicles = api.vehicles
   p vehicles
-  p api.mobileEnabled(vehicles[0]["id"])
-  p api.chargeState(vehicles[0]["id"])
-  p api.climateState(vehicles[0]["id"])
-  p api.driveState(vehicles[0]["id"])
-  p api.vehicleState(vehicles[0]["id"])
+  p vehicles[0].mobileEnabled
+  p vehicles[0].chargeState
+  p vehicles[0].climateState
+  p vehicles[0].driveState
+  p vehicles[0].vehicleState
 end
