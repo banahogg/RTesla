@@ -36,6 +36,7 @@ class Vehicle
     return resp
   end
 
+  def awake() @prop['state'] != "asleep" end
   def mobileEnabled() doQuery('mobile_enabled') end
   def chargeState() doQuery('command/charge_state') end
   def climateState() doQuery('command/climate_state') end
