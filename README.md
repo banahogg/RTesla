@@ -19,4 +19,4 @@ TODO
 
 ### Streaming
 
-* Method to terminate yield loop
+* Testing

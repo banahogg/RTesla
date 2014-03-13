@@ -48,10 +48,10 @@ class Streamer
   def getTokens
     v = @api.vehicles[0]
 
-    @id = v["id"]
-    @vid = v["vehicle_id"]
+    @id = v.prop["id"]
+    @vid = v.prop["vehicle_id"]
 
-    @tokens = v['tokens']
+    @tokens = v.prop['tokens']
   end
 end
 

@@ -13,6 +13,8 @@ class Vehicle
     @id = prop['id']
   end
   
+  attr_reader :prop
+
   # Low-level function to run a query
   def doQuery(command)
     url = URI.parse("https://portal.vn.teslamotors.com/vehicles/#{@id}/#{command}")
