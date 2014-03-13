@@ -38,7 +38,7 @@ class Vehicle
     return resp
   end
 
-  def awake() @prop['state'] != "asleep" end
+  def awake() @prop['state'] == "online" end
   def mobileEnabled() doQuery('mobile_enabled') end
   def chargeState() doQuery('command/charge_state') end
   def climateState() doQuery('command/climate_state') end
@@ -142,15 +142,16 @@ class WebApi
 end
 
 if $0 == __FILE__
-  auth = YAML::load(File.new("auth.yaml"))
+  auth = YAML::load(File.new("../teslaremote/auth.yaml"))
 
   api = WebApi.new(auth['username'], auth['password'])
 
   vehicles = api.vehicles
-  p vehicles
-  p vehicles[0].mobileEnabled
-  p vehicles[0].chargeState
-  p vehicles[0].climateState
-  p vehicles[0].driveState
-  p vehicles[0].vehicleState
+  p vehicles[0]
+  p vehicles[0].awake
+#  p vehicles[0].mobileEnabled
+#  p vehicles[0].chargeState
+#  p vehicles[0].climateState
+#  p vehicles[0].driveState
+#  p vehicles[0].vehicleState
 end
