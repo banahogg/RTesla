@@ -27,7 +27,7 @@ class Vehicle
     p response.body if @debug
     throw "Can't get property #{response.code}" unless response.code == '200'
 
-    return JSON.parse(response.body)
+    return JSON.parse(response.body)["response"]
   end
 
   # Function to run a command
