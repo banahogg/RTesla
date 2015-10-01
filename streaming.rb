@@ -30,7 +30,9 @@ class Streamer
     streamReq = Net::HTTP::Get.new(streamUri.request_uri)
     streamReq.basic_auth(@username, @tokens[0])
 
-    while true
+    @done = false
+
+    while !@done
       response = http.request(streamReq)
       if response.code != '200'
         getTokens
@@ -40,6 +42,10 @@ class Streamer
       end
       yield response.body
     end
+  end
+
+  def stop
+    @done = true
   end
   
   private
@@ -57,7 +63,7 @@ end
 
 # Run the file to get a simple CSV dump from the streaming API
 if $0 == __FILE__
-  auth = YAML::load(File.new("auth.yaml"))
+  auth = YAML::load(File.new("../teslaremote/auth.yaml"))
   stream = Streamer.new(auth['username'], auth['password'])
   count = 0
   values = ['speed', 'odometer', 'soc', 'elevation', 'est_heading', 'est_lat', 'est_lng', 'power', 'shift_state']
