@@ -7,10 +7,11 @@ require 'uri'
 
 class Vehicle
   # Create a Vehicle with given API object and id
-  def initialize(token, prop)
+  def initialize(token, prop, debug)
     @token = token
     @prop = prop
     @id = prop['id']
+    @debug = debug
   end
   
   attr_reader :prop
@@ -33,8 +34,20 @@ class Vehicle
   # Function to run a command
   # Adds handling for command return values on top of the query handling
   def doCommand(command)
-    resp = doQuery(command)
-      throw "Error executing command: #{resp['reason']}" unless resp['result']
+    url = URI.parse("https://owner-api.teslamotors.com/api/1/vehicles/#{@id}/#{command}")
+
+    response = Net::HTTP.start(url.host, use_ssl: true, verify_mode: OpenSSL::SSL::VERIFY_NONE) do |http|
+      http.post(url.request_uri, "", { 'Authorization' => "Bearer #{@token}" })
+    end
+
+    p response if @debug
+    p response.body if @debug
+    throw "Can't get property #{response.code}" unless response.code == '200'
+
+    resp = JSON.parse(response.body)["response"]
+
+    throw "Error executing command: #{resp['reason']}" unless resp['result']
+
     return resp
   end
 
@@ -133,7 +146,7 @@ class WebApi
 
     vehicles = JSON.parse(response.body)
 
-    return vehicles['response'].map {|x| Vehicle.new(@token, x)}
+    return vehicles['response'].map {|x| Vehicle.new(@token, x, @debug)}
   end
 
   # Save the current login tokens to a file "token.txt"
